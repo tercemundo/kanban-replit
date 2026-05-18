@@ -35,7 +35,7 @@ sleep 2
 
 # 4. Arrancar React Frontend en Puerto 18929
 echo "=== Iniciando React Frontend en puerto 18929 ==="
-cd ../..
+cd ../../frontend
 pnpm --filter @workspace/kanban run dev --port 18929 --host &
 FRONTEND_PID=$!
 

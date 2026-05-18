@@ -20,12 +20,12 @@ pip install --upgrade pip
 pip install -r requirements.txt
 
 echo "=== [5/5] Instalando dependencias de Node.js en el Monorepositorio ==="
-cd ../..
+cd ../../frontend
 pnpm install
 
 echo "=============================================================================="
 echo " ¡Configuración completada con éxito!"
 echo " Para iniciar la aplicación, ejecuta:"
-echo "   cd artifacts/flaskapi"
+echo "   cd backend/api"
 echo "   bash startup.sh"
 echo "=============================================================================="
