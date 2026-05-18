@@ -1,0 +1,9 @@
+flask
+connexion[flask,swagger-ui]
+sqlalchemy
+alembic
+psycopg2-binary
+python-dotenv
+gunicorn
+pydantic
+flask-cors
