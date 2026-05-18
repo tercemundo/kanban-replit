@@ -1,9 +1,7 @@
-flask
-connexion[flask,swagger-ui]
+fastapi
+uvicorn[standard]
 sqlalchemy
 alembic
 psycopg2-binary
 python-dotenv
-gunicorn
 pydantic
-flask-cors

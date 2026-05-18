@@ -20,5 +20,5 @@ WORKDIR /workspace/backend/api
 
 EXPOSE 8080
 
-# Iniciar el servidor Flask API usando Gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "app:flask_app"]
+# Iniciar el servidor FastAPI usando Uvicorn
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080"]

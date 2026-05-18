@@ -1,102 +1,127 @@
 import os
-import secrets
+import uuid
 from datetime import datetime, timedelta
-import requests
-from flask import request, make_response, redirect
+from typing import Optional, Dict, Any
 from sqlalchemy.orm import Session
+from fastapi import Request, HTTPException, Depends
+from models import User, Session as DBSession
 from database import SessionLocal
-from models import Session as DBSession, User as DBUser
 
-SESSION_COOKIE = "sid"
-SESSION_TTL_SECONDS = 7 * 24 * 60 * 60  # 7 días
-OIDC_COOKIE_TTL_SECONDS = 10 * 60      # 10 minutos
-ISSUER_URL = os.environ.get("ISSUER_URL", "https://replit.com/oidc")
+# ==============================================================================
+# Variables de Configuración y Entorno
+# ==============================================================================
 
-def get_session_id():
-    auth_header = request.headers.get("Authorization")
-    if auth_header and auth_header.startswith("Bearer "):
-        return auth_header[7:]
-    return request.cookies.get(SESSION_COOKIE)
+# Si existe REPL_ID, asumimos que estamos en Replit
+is_replit_environment = "REPL_ID" in os.environ
 
-def get_session(db: Session, sid: str):
-    row = db.query(DBSession).filter(DBSession.sid == sid).first()
-    if not row:
-        return None
-    if row.expire < datetime.utcnow():
-        db.delete(row)
-        db.commit()
-        return None
-    return row.sess
+# Identificador de la cookie de sesión (compartido con React)
+SESSION_COOKIE = "kanban_session_id"
+SESSION_TTL_DAYS = 30
+SESSION_TTL_SECONDS = SESSION_TTL_DAYS * 24 * 60 * 60
 
-def create_session(db: Session, user_data: dict, access_token: str, refresh_token: str = None, expires_at: int = None) -> str:
-    sid = secrets.token_hex(32)
-    session_data = {
-        "user": user_data,
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "expires_at": expires_at or int(datetime.utcnow().timestamp() + SESSION_TTL_SECONDS)
-    }
+# ==============================================================================
+# Funciones Base de Base de Datos
+# ==============================================================================
+
+def upsert_user(db: Session, user_info: Dict[str, Any]) -> User:
+    """Busca al usuario por su Replit ID (sub) o lo crea/actualiza."""
+    sub = user_info.get("sub")
+    if not sub:
+        raise ValueError("Missing 'sub' (Replit ID) in user info")
+
+    user = db.query(User).filter(User.replitId == sub).first()
     
-    db_sess = DBSession(
-        sid=sid,
-        sess=session_data,
-        expire=datetime.utcnow() + timedelta(seconds=SESSION_TTL_SECONDS)
-    )
-    db.add(db_sess)
-    db.commit()
-    return sid
-
-def delete_session(db: Session, sid: str):
-    row = db.query(DBSession).filter(DBSession.sid == sid).first()
-    if row:
-        db.delete(row)
-        db.commit()
-
-def upsert_user(db: Session, claims: dict) -> DBUser:
-    user_id = claims.get("sub")
-    if not user_id:
-        raise ValueError("Claims must contain 'sub'")
-        
-    user = db.query(DBUser).filter(DBUser.id == user_id).first()
-    
-    first_name = claims.get("first_name") or claims.get("given_name")
-    last_name = claims.get("last_name") or claims.get("family_name")
-    profile_image_url = claims.get("profile_image_url") or claims.get("picture")
-    
-    if not user:
-        user = DBUser(
-            id=user_id,
-            email=claims.get("email"),
-            firstName=first_name,
-            lastName=last_name,
-            profileImageUrl=profile_image_url
+    if user:
+        user.email = user_info.get("email") or user.email
+        user.firstName = user_info.get("first_name") or user.firstName
+        user.lastName = user_info.get("last_name") or user.lastName
+        user.profileImageUrl = user_info.get("profile_image_url") or user.profileImageUrl
+        user.updatedAt = datetime.utcnow()
+    else:
+        user = User(
+            replitId=sub,
+            email=user_info.get("email"),
+            firstName=user_info.get("first_name"),
+            lastName=user_info.get("last_name"),
+            profileImageUrl=user_info.get("profile_image_url")
         )
         db.add(user)
-    else:
-        user.email = claims.get("email") or user.email
-        user.firstName = first_name or user.firstName
-        user.lastName = last_name or user.lastName
-        user.profileImageUrl = profile_image_url or user.profileImageUrl
-        user.updatedAt = datetime.utcnow()
-        
+    
     db.commit()
     db.refresh(user)
     return user
 
-def get_current_user():
-    sid = get_session_id()
-    if not sid:
-        return None
+def create_session(db: Session, user_data: Dict[str, Any], access_token: str, refresh_token: str = None) -> str:
+    """Crea una sesión segura en la DB y devuelve el session_id (uuid)"""
+    sid = str(uuid.uuid4())
+    expires = datetime.utcnow() + timedelta(days=SESSION_TTL_DAYS)
     
+    new_sess = DBSession(
+        sid=sid,
+        accessToken=access_token,
+        refreshToken=refresh_token,
+        expiresAt=expires,
+        userData=user_data
+    )
+    db.add(new_sess)
+    db.commit()
+    return sid
+
+def delete_session(db: Session, sid: str):
+    """Elimina la sesión de la base de datos"""
+    sess = db.query(DBSession).filter(DBSession.sid == sid).first()
+    if sess:
+        db.delete(sess)
+        db.commit()
+
+# ==============================================================================
+# Inyección de Dependencias para FastAPI
+# ==============================================================================
+
+def get_db():
     db = SessionLocal()
     try:
-        session_data = get_session(db, sid)
-        if session_data:
-            return session_data.get("user")
+        yield db
     finally:
         db.close()
-    return None
 
-def is_replit_environment() -> bool:
-    # Si REPL_ID está presente en el entorno, es el entorno real de Replit
-    return bool(os.environ.get("REPL_ID"))
+def get_session_id(request: Request) -> Optional[str]:
+    """Extrae el SID de la cabecera Authorization o de las cookies"""
+    # 1. Probar Bearer Token
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        return auth_header.split("Bearer ")[1].strip()
+    
+    # 2. Probar Cookie
+    return request.cookies.get(SESSION_COOKIE)
+
+def get_current_user(request: Request, db: Session = Depends(get_db)) -> Optional[Dict[str, Any]]:
+    """Devuelve los datos del usuario si la sesión es válida y no ha expirado"""
+    sid = get_session_id(request)
+    if not sid:
+        return None
+        
+    sess = db.query(DBSession).filter(DBSession.sid == sid).first()
+    if not sess:
+        return None
+        
+    if sess.expiresAt and sess.expiresAt < datetime.utcnow():
+        delete_session(db, sid)
+        return None
+        
+    # Verificar que el usuario asociado a esta sesión aún exista en la DB
+    if not sess.userData or "id" not in sess.userData:
+        return None
+        
+    user = db.query(User).filter(User.id == sess.userData["id"]).first()
+    if not user:
+        return None
+        
+    return user.to_dict()
+
+def require_auth(request: Request, db: Session = Depends(get_db)) -> Dict[str, Any]:
+    """Dependency que obliga a estar autenticado. Lanza 401 si no hay sesión."""
+    user = get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return user

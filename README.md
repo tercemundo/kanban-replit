@@ -4,7 +4,7 @@ Una plataforma profesional y moderna de gestión de tareas tipo **Kanban** dise�
 
 ---
 
-## 🏗️ Arquitectura del Proyecto (v2)
+## 🏗️ Arquitectura del Proyecto (v3)
 
 Este proyecto está dividido en tres carpetas principales para mantener una clara separación de responsabilidades:
 
@@ -12,7 +12,7 @@ Este proyecto está dividido en tres carpetas principales para mantener una clar
   - `/frontend/kanban`: El proyecto Vite de React principal.
   - `/frontend/lib`: Librerías compartidas del lado cliente (cliente de API autogenerado, validaciones Zod, sistema de autenticación).
 - **`/backend`**: Contiene el servidor de la API y las reglas de negocio.
-  - `/backend/api`: Servidor en **Python (Flask)** con enrutamiento basado en Swagger/OpenAPI.
+  - `/backend/api`: Servidor en **Python (FastAPI)** con enrutamiento moderno y validación vía Pydantic.
   - `/backend/lib/db`: Esquemas de base de datos Drizzle/SQLAlchemy.
 - **`/shared`**: Código compartido real entre cliente y servidor.
   - `/shared/api-spec`: Contrato `openapi.yaml` que define estrictamente todos los endpoints.
@@ -20,7 +20,7 @@ Este proyecto está dividido en tres carpetas principales para mantener una clar
 ## 🛠️ Stack Tecnológico
 
 - **Frontend:** React 19, Vite, Tailwind CSS 4, Framer Motion, pnpm workspaces.
-- **Backend:** Python 3.12, Flask, Connexion (OpenAPI First), SQLAlchemy, Alembic.
+- **Backend:** Python 3.12, FastAPI, SQLAlchemy, Alembic, Pydantic.
 - **Base de Datos:** PostgreSQL 16.
 - **Infraestructura:** Docker, Nginx Proxy.
 
@@ -61,7 +61,7 @@ bash setup_ubuntu.sh
 Por defecto, el backend buscará una variable `DATABASE_URL`. Si existe un archivo `.env` en la raíz que apunte a un Postgres corriendo de forma local, se conectará a él. En su defecto, se creará un entorno SQLite localmente.
 
 **Paso 3: Levantar Frontend y Backend simultáneamente**
-Este script arranca el servidor Flask (Python) en segundo plano y luego levanta la interfaz Vite de React, uniéndolos para que trabajen en conjunto.
+Este script arranca el servidor FastAPI (Python) en segundo plano y luego levanta la interfaz Vite de React, uniéndolos para que trabajen en conjunto.
 
 ```bash
 cd backend/api
@@ -71,9 +71,4 @@ bash startup.sh
 
 ---
 
-## 💡 Flujo de Trabajo (Contract-First)
 
-Este proyecto emplea un modelo Contract-First para el desarrollo.
-1. Cualquier cambio en la API empieza modificando el archivo `shared/api-spec/openapi.yaml`.
-2. El servidor Python lo leerá dinámicamente y requerirá que implementes la nueva lógica en `backend/api/handlers.py`.
-3. El frontend puede regenerar sus librerías de tipos ejecutando `pnpm build` o herramientas dentro del workspace de la carpeta `frontend/`.
