@@ -12,7 +12,7 @@ Base.metadata.create_all(bind=engine)
 
 # Inicializar Connexion
 # specification_dir apunta al directorio del openapi.yaml
-spec_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../lib/api-spec'))
+spec_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../shared/api-spec'))
 app = connexion.FlaskApp(__name__, specification_dir=spec_dir)
 
 # Agregar la API

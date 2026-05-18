@@ -36,6 +36,10 @@ minimumReleaseAgeExclude:
 
 packages:
   - artifacts/*
+  - frontend/*
+  - frontend/lib/*
+  - backend/*
+  - backend/lib/*
   - lib/*
   - lib/integrations/*
   - scripts

@@ -8,11 +8,12 @@ RUN npm install -g pnpm
 # Copiar archivos de configuración del monorepositorio para el caché de pnpm
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.json tsconfig.base.json ./
 
-# Copiar dependencias de librerías del monorepositorio
-COPY lib/ ./lib/
+# Copiar las librerías propias del frontend
+COPY frontend/lib/ ./frontend/lib/
+COPY shared/ ./shared/
 
-# Copiar la carpeta del frontend
-COPY artifacts/kanban/ ./artifacts/kanban/
+# Copiar la aplicación web principal
+COPY frontend/kanban/ ./frontend/kanban/
 
 # Instalar dependencias y compilar el bundle
 RUN pnpm install --frozen-lockfile
@@ -22,10 +23,10 @@ RUN pnpm --filter @workspace/kanban run build
 FROM nginx:alpine
 
 # Copiar los archivos estáticos desde la etapa de compilación
-COPY --from=builder /workspace/artifacts/kanban/dist /usr/share/nginx/html
+COPY --from=builder /workspace/frontend/kanban/dist /usr/share/nginx/html
 
 # Copiar la configuración del reverse proxy interna para React Router
-COPY docker/nginx.frontend.conf /etc/nginx/conf.d/default.conf
+COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 3000
 

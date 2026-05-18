@@ -1,84 +1,52 @@
-version: "3.9"
-
-# ============================================================
-# IT Kanban Board — Docker Compose
-# ============================================================
-#
-# IMPORTANT — Authentication note:
-#   This app uses Replit Auth (OpenID Connect via https://replit.com/oidc).
-#   The REPL_ID must match a real Replit app registered with Replit's OIDC
-#   provider. Running outside of Replit requires replacing the auth provider
-#   or disabling the auth requirement. See artifacts/api-server/src/lib/auth.ts
-#
-# Required secrets (set in .env or as environment variables before running):
-#   DATABASE_URL      — Postgres connection string (auto-set by this compose)
-#   SESSION_SECRET    — Random secret for cookie signing (generate with: openssl rand -hex 32)
-#   REPL_ID           — Your Replit app ID (from replit.com, used as OIDC client_id)
-# ============================================================
+version: '3.8'
 
 services:
-  # ----------------------------------------------------------
-  # PostgreSQL database
-  # ----------------------------------------------------------
-  postgres:
+  db:
     image: postgres:16-alpine
-    restart: unless-stopped
+    container_name: kanban-db
     environment:
-      POSTGRES_USER: kanban
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kanban_secret}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: kanban
+    ports:
+      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kanban -d kanban"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d kanban"]
       interval: 5s
-      timeout: 5s
-      retries: 10
-
-  # ----------------------------------------------------------
-  # API server  (Express + Drizzle ORM)
-  # ----------------------------------------------------------
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile.api
-    restart: unless-stopped
-    environment:
-      NODE_ENV: production
-      PORT: 8080
-      DATABASE_URL: postgres://kanban:${POSTGRES_PASSWORD:-kanban_secret}@postgres:5432/kanban
-      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET is required}
-      REPL_ID: ${REPL_ID:?REPL_ID is required — see auth note above}
-      ISSUER_URL: ${ISSUER_URL:-https://replit.com/oidc}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:8080/api/auth/user').then(r => process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
-      interval: 10s
       timeout: 5s
       retries: 5
 
-  # ----------------------------------------------------------
-  # Kanban frontend  (Vite build → nginx static files)
-  # ----------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: kanban-flask-api
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/kanban
+      PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
   kanban:
     build:
       context: .
-      dockerfile: Dockerfile.kanban
-    restart: unless-stopped
-    depends_on:
-      api:
-        condition: service_healthy
-
-  # ----------------------------------------------------------
-  # Nginx reverse proxy  (routes /api → api, / → kanban)
-  # ----------------------------------------------------------
-  nginx:
-    image: nginx:1.27-alpine
-    restart: unless-stopped
+      dockerfile: frontend/Dockerfile
+    container_name: kanban-react-frontend
     ports:
-      - "${HTTP_PORT:-80}:80"
+      - "3000:3000"
+    depends_on:
+      - api
+
+  proxy:
+    image: nginx:alpine
+    container_name: kanban-nginx-proxy
+    ports:
+      - "80:80"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
@@ -86,4 +54,4 @@ services:
       - kanban
 
 volumes:
-  postgres_data:
+  pgdata:

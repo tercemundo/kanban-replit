@@ -9,14 +9,14 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiar e instalar requerimientos de Python en cache
-COPY artifacts/flaskapi/requirements.txt ./artifacts/flaskapi/
-RUN pip install --no-cache-dir -r ./artifacts/flaskapi/requirements.txt
+COPY backend/api/requirements.txt ./backend/api/
+RUN pip install --no-cache-dir -r ./backend/api/requirements.txt
 
-# Copiar código del backend y la especificación de la API
-COPY artifacts/flaskapi/ ./artifacts/flaskapi/
-COPY lib/api-spec/ ./lib/api-spec/
+# Copiar código del backend y la especificación de la API (desde el contexto raíz)
+COPY backend/ ./backend/
+COPY shared/ ./shared/
 
-WORKDIR /workspace/artifacts/flaskapi
+WORKDIR /workspace/backend/api
 
 EXPOSE 8080
 

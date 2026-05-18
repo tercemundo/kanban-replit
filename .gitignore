@@ -51,7 +51,6 @@ Thumbs.db
 # Agents and Artifacts
 .agents/
 artifacts/*
-!artifacts/flaskapi/
 attached_assets/
 
 # Python cache
