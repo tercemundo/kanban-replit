@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "@workspace/replit-auth-web";
+import { useAuth } from "@workspace/auth-web";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useListTasks, useGetTaskStats } from "@workspace/api-client-react";
