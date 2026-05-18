@@ -1,0 +1,50 @@
+# ============================================================
+# IT Kanban Board — API Server
+# Multi-stage build: install deps → build bundle → slim runtime
+# ============================================================
+
+# ---- Stage 1: build ----------------------------------------
+FROM node:24-alpine AS builder
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+WORKDIR /workspace
+
+# Copy workspace manifests first for layer caching
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY patches/ patches/ 2>/dev/null || true
+
+# Copy all package.json files so pnpm can resolve the workspace graph
+COPY lib/api-spec/package.json             lib/api-spec/
+COPY lib/api-client-react/package.json     lib/api-client-react/
+COPY lib/api-zod/package.json              lib/api-zod/
+COPY lib/db/package.json                   lib/db/
+COPY lib/replit-auth-web/package.json      lib/replit-auth-web/
+COPY artifacts/api-server/package.json     artifacts/api-server/
+
+# Install all dependencies (workspace-aware)
+RUN pnpm install --frozen-lockfile
+
+# Copy source code
+COPY tsconfig.json tsconfig.base.json ./
+COPY lib/ lib/
+COPY artifacts/api-server/ artifacts/api-server/
+
+# Build the API bundle
+RUN pnpm --filter @workspace/api-server run build
+
+# ---- Stage 2: runtime --------------------------------------
+FROM node:24-alpine AS runtime
+
+WORKDIR /app
+
+# Copy only the built bundle and its runtime dependencies
+COPY --from=builder /workspace/artifacts/api-server/dist ./dist
+
+# openid-client is externalized from the bundle — install it separately
+RUN npm install openid-client
+
+EXPOSE 8080
+
+CMD ["node", "--enable-source-maps", "./dist/index.mjs"]
