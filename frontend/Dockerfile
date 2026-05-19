@@ -6,7 +6,9 @@ WORKDIR /workspace
 RUN npm install -g pnpm
 
 # Copiar archivos de configuración del monorepositorio para el caché de pnpm
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.json tsconfig.base.json ./
+# Nota: desde v2, estos archivos viven en frontend/ (no en la raíz)
+COPY frontend/package.json frontend/pnpm-workspace.yaml frontend/pnpm-lock.yaml ./frontend/
+COPY frontend/tsconfig.json frontend/tsconfig.base.json ./frontend/
 
 # Copiar las librerías propias del frontend
 COPY frontend/lib/ ./frontend/lib/
@@ -16,7 +18,7 @@ COPY shared/ ./shared/
 COPY frontend/kanban/ ./frontend/kanban/
 
 # Instalar dependencias y compilar el bundle
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --dir ./frontend
 RUN pnpm --filter @workspace/kanban run build
 
 # Etapa 2: Servidor Nginx ligero para los estáticos

@@ -22,7 +22,7 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    container_name: kanban-flask-api
+    container_name: kanban-api
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/kanban
       PORT: 8080
