@@ -46,8 +46,8 @@ export default function KanbanBoard({ tasks }: { tasks: Task[] }) {
             const columnTasks = tasks.filter(t => t.columnStatus === col.id).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
             
             return (
-              <div key={col.id} className="flex-1 min-w-[300px] flex flex-col h-full bg-card rounded border border-border">
-                <div className="p-3 border-b border-border bg-muted/30 flex items-center justify-between shrink-0">
+              <div key={col.id} className="flex-1 min-w-[300px] flex flex-col h-full bg-card/40 backdrop-blur-md rounded-xl border border-border/50 shadow-xl overflow-hidden">
+                <div className="p-3 border-b border-border/50 bg-muted/20 flex items-center justify-between shrink-0">
                   <h2 className="font-mono text-sm font-bold text-foreground">{col.title}</h2>
                   <span className="text-xs font-mono bg-muted text-muted-foreground px-2 py-0.5 rounded">
                     {columnTasks.length}

@@ -18,8 +18,8 @@ export default function KanbanPage() {
   const { data: stats } = useGetTaskStats();
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col overflow-hidden">
-      <header className="h-14 border-b border-border px-6 flex items-center justify-between shrink-0 bg-card z-10">
+    <div className="min-h-screen bg-mesh-gradient text-foreground flex flex-col overflow-hidden">
+      <header className="h-14 border-b border-border/50 px-6 flex items-center justify-between shrink-0 bg-card/60 backdrop-blur-xl z-10">
         <div className="flex items-center gap-6">
           <h1 className="font-bold text-primary text-xl font-mono tracking-tighter">IT_KANBAN_OS</h1>
           

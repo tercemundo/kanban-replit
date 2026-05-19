@@ -19,8 +19,8 @@ export default function TaskCard({ task }: { task: Task }) {
 
   return (
     <>
-      <div className="group relative bg-background border border-border p-3 rounded shadow-sm hover:shadow-md transition-shadow">
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-background/80 backdrop-blur pb-1 pl-1 rounded-bl">
+      <div className="group relative bg-background/80 backdrop-blur-sm border border-border/60 p-3 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-background/90 backdrop-blur pb-1 pl-1 rounded-bl">
           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsEditModalOpen(true)}>
             <Edit2 className="h-3 w-3" />
           </Button>
