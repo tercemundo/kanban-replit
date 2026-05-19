@@ -81,7 +81,7 @@ export const TaskColumnStatus = {
 } as const;
 
 export interface Task {
-  id: number;
+  id: string;
   title: string;
   /** @nullable */
   description?: string | null;
