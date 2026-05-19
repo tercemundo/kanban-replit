@@ -43,11 +43,11 @@ export function useAuth(): AuthState {
 
   const login = useCallback(() => {
     const base = import.meta.env.BASE_URL.replace(/\/+$/, "") || "/";
-    window.location.href = `/api/login?returnTo=${encodeURIComponent(base)}`;
+    window.location.href = `/api/auth/login/browser?returnTo=${encodeURIComponent(base)}`;
   }, []);
 
   const logout = useCallback(() => {
-    window.location.href = "/api/logout";
+    window.location.href = "/api/auth/logout/browser";
   }, []);
 
   return {
