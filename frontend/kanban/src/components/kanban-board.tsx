@@ -20,7 +20,7 @@ export default function KanbanBoard({ tasks }: { tasks: Task[] }) {
 
     const sourceColumn = result.source.droppableId as TaskColumnStatus;
     const destinationColumn = result.destination.droppableId as TaskColumnStatus;
-    const taskId = parseInt(result.draggableId);
+    const taskId = result.draggableId; // UUID string — no parseInt
 
     if (sourceColumn === destinationColumn) return;
 
