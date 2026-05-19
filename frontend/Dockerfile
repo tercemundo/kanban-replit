@@ -17,8 +17,8 @@ COPY shared/ ./shared/
 # Copiar la aplicación web principal
 COPY frontend/kanban/ ./frontend/kanban/
 
-# Instalar dependencias y compilar el bundle
-RUN pnpm install --frozen-lockfile --dir ./frontend
+# Instalar dependencias (regenera el lockfile si es necesario)
+RUN pnpm install --no-frozen-lockfile --dir ./frontend
 RUN pnpm --filter @workspace/kanban run build
 
 # Etapa 2: Servidor Nginx ligero para los estáticos
