@@ -199,7 +199,7 @@ def get_task(
         raise HTTPException(status_code=404, detail="Task not found")
     return task
 
-@api_router.put("/tasks/{task_id}", response_model=schemas.TaskResponse)
+@api_router.patch("/tasks/{task_id}", response_model=schemas.TaskResponse)
 def update_task(
     task_id: str,
     task_in: schemas.TaskUpdate,
@@ -233,7 +233,7 @@ def delete_task(
     db.commit()
     return Response(status_code=204)
 
-@api_router.post("/tasks/{task_id}/move", response_model=schemas.TaskResponse)
+@api_router.patch("/tasks/{task_id}/move", response_model=schemas.TaskResponse)
 def move_task(
     task_id: str,
     task_move: schemas.TaskMove,
