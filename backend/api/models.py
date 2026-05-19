@@ -23,6 +23,8 @@ class ColumnStatusEnum(str, enum.Enum):
 class User(Base):
     __tablename__ = "users"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    # sub/externalId: identificador único del proveedor externo (OIDC/mock)
+    externalId = Column("external_id", String, unique=True, nullable=True)
     email = Column(String, unique=True, nullable=True)
     firstName = Column("first_name", String, nullable=True)
     lastName = Column("last_name", String, nullable=True)
@@ -41,17 +43,19 @@ class User(Base):
 
 class Session(Base):
     __tablename__ = "sessions"
-    sid = Column(String, primary_key=True)
-    sess = Column(JSON, nullable=False)
-    expire = Column(DateTime, nullable=False)
+    sid = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    userData = Column("user_data", JSON, nullable=True)
+    accessToken = Column("access_token", String, nullable=True)
+    refreshToken = Column("refresh_token", String, nullable=True)
+    expiresAt = Column("expires_at", DateTime, nullable=True)
 
     __table_args__ = (
-        Index("IDX_session_expire", "expire"),
+        Index("IDX_session_expire", "expires_at"),
     )
 
 class Task(Base):
     __tablename__ = "tasks"
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
     priority = Column(Enum(PriorityEnum, name="priority", native_enum=True), default=PriorityEnum.medium, nullable=False)
@@ -64,7 +68,7 @@ class Task(Base):
 
     def to_dict(self):
         return {
-            "id": self.id,
+            "id": str(self.id),
             "title": self.title,
             "description": self.description,
             "priority": self.priority.value if hasattr(self.priority, "value") else self.priority,

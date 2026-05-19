@@ -24,13 +24,13 @@ SESSION_TTL_SECONDS = SESSION_TTL_DAYS * 24 * 60 * 60
 # ==============================================================================
 
 def upsert_user(db: Session, user_info: Dict[str, Any]) -> User:
-    """Busca al usuario por su Replit ID (sub) o lo crea/actualiza."""
+    """Busca al usuario por su ID externo (sub) o lo crea/actualiza."""
     sub = user_info.get("sub")
     if not sub:
-        raise ValueError("Missing 'sub' (Replit ID) in user info")
+        raise ValueError("Missing 'sub' in user info")
 
-    user = db.query(User).filter(User.replitId == sub).first()
-    
+    user = db.query(User).filter(User.externalId == sub).first()
+
     if user:
         user.email = user_info.get("email") or user.email
         user.firstName = user_info.get("first_name") or user.firstName
@@ -39,14 +39,14 @@ def upsert_user(db: Session, user_info: Dict[str, Any]) -> User:
         user.updatedAt = datetime.utcnow()
     else:
         user = User(
-            replitId=sub,
+            externalId=sub,
             email=user_info.get("email"),
             firstName=user_info.get("first_name"),
             lastName=user_info.get("last_name"),
             profileImageUrl=user_info.get("profile_image_url")
         )
         db.add(user)
-    
+
     db.commit()
     db.refresh(user)
     return user
