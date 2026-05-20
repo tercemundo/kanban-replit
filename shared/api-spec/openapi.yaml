@@ -150,7 +150,21 @@ paths:
               schema:
                 $ref: '#/components/schemas/LogoutSuccess'
 
-  /tasks:
+  /tasks/history:
+    get:
+      summary: Get task history
+      operationId: getTaskHistory
+      responses:
+        "200":
+          description: A list of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
     get:
       operationId: listTasks
       tags: [tasks]
@@ -433,6 +447,8 @@ components:
       properties:
         id:
           type: string
+        ticketNumber:
+          type: [integer, "null"]
         title:
           type: string
         description:
@@ -445,7 +461,7 @@ components:
           enum: ["Técnicos IT", "Gerencia Comercial", "Gerencia Finanzas", "Gerencia RRHH"]
         columnStatus:
           type: string
-          enum: [todo, in_progress, in_review, done]
+          enum: [todo, in_progress, in_review, done, drop]
         dueDate:
           type: ["string", "null"]
         userId:
@@ -480,7 +496,7 @@ components:
           enum: ["Técnicos IT", "Gerencia Comercial", "Gerencia Finanzas", "Gerencia RRHH"]
         columnStatus:
           type: string
-          enum: [todo, in_progress, in_review, done]
+          enum: [todo, in_progress, in_review, done, drop]
         dueDate:
           type: string
       required:
@@ -505,7 +521,7 @@ components:
           enum: ["Técnicos IT", "Gerencia Comercial", "Gerencia Finanzas", "Gerencia RRHH"]
         columnStatus:
           type: string
-          enum: [todo, in_progress, in_review, done]
+          enum: [todo, in_progress, in_review, done, drop]
         dueDate:
           type: string
 
@@ -514,7 +530,7 @@ components:
       properties:
         columnStatus:
           type: string
-          enum: [todo, in_progress, in_review, done]
+          enum: [todo, in_progress, in_review, done, drop]
       required:
         - columnStatus
 

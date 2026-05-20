@@ -4,8 +4,22 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from sqlalchemy.orm import Session
 from fastapi import Request, HTTPException, Depends
+import hashlib
+import binascii
 from models import User, Session as DBSession
 from database import SessionLocal
+
+def verify_password(stored_password: str, provided_password: str) -> bool:
+    """Verify a stored password against one provided by user"""
+    if not stored_password:
+        return False
+    salt = stored_password[:64].encode('ascii')
+    stored_pwdhash = stored_password[64:].encode('ascii')
+    pwdhash = hashlib.pbkdf2_hmac('sha512', 
+                                provided_password.encode('utf-8'), 
+                                salt, 100000)
+    pwdhash = binascii.hexlify(pwdhash)
+    return pwdhash == stored_pwdhash
 
 # ==============================================================================
 # Variables de Configuración y Entorno

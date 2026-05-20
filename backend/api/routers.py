@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import List, Optional
 
 from database import SessionLocal
-from models import Task, User, PriorityEnum, AssigneeEnum, ColumnStatusEnum
+from models import Task, User, PriorityEnum, AssigneeEnum, ColumnStatusEnum, SystemSetting
 import schemas
 from auth import (
     require_auth,
@@ -15,6 +16,7 @@ from auth import (
     create_session,
     delete_session,
     get_session_id,
+    verify_password,
     SESSION_COOKIE,
     SESSION_TTL_SECONDS
 )
@@ -45,8 +47,8 @@ def get_current_auth_user(user: dict = Depends(get_current_user)):
     return {"user": user}
 
 @auth_router.get("/login/browser")
-def begin_browser_login(returnTo: str = "/"):
-    callback_url = f"/api/auth/login/browser/callback?code=mock_code&state=mock_state&returnTo={returnTo}"
+def begin_browser_login(username: str = "user", returnTo: str = "/"):
+    callback_url = f"/api/auth/login/browser/callback?code=mock_code&state=mock_state&returnTo={returnTo}&username={username}"
     return RedirectResponse(url=callback_url)
 
 @auth_router.get("/login/browser/callback")
@@ -57,15 +59,25 @@ def handle_browser_login_callback(
     code: Optional[str] = None,
     state: Optional[str] = None,
     iss: Optional[str] = None,
-    returnTo: str = "/"
+    returnTo: str = "/",
+    username: str = "user"
 ):
-    claims = {
-        "sub": "mock-user-123",
-        "email": "admin@example.com",
-        "first_name": "Marcelo",
-        "last_name": "Guazzardo",
-        "profile_image_url": "https://avatar.vercel.sh/marcelo"
-    }
+    if username == "user1":
+        claims = {
+            "sub": "mock-user-456",
+            "email": "user1@example.com",
+            "first_name": "User",
+            "last_name": "One",
+            "profile_image_url": "https://avatar.vercel.sh/user1"
+        }
+    else:
+        claims = {
+            "sub": "mock-user-123",
+            "email": "admin@example.com",
+            "first_name": "Marcelo",
+            "last_name": "Guazzardo",
+            "profile_image_url": "https://avatar.vercel.sh/marcelo"
+        }
     
     db_user = upsert_user(db, claims)
     
@@ -88,13 +100,41 @@ def handle_browser_login_callback(
     )
     return redirect_response
 
-@auth_router.post("/logout/browser")
+@auth_router.post("/login", response_model=schemas.CurrentUserResponse)
+def login_with_password(
+    login_data: schemas.LoginRequest,
+    response: Response,
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.username == login_data.username).first()
+    if not user or not verify_password(user.hashedPassword, login_data.password):
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    
+    sid = create_session(
+        db,
+        user_data=user.to_dict(),
+        access_token="mock_access_token",
+        refresh_token="mock_refresh_token"
+    )
+    
+    response.set_cookie(
+        key=SESSION_COOKIE,
+        value=sid,
+        max_age=SESSION_TTL_SECONDS,
+        path="/",
+        httponly=True,
+        samesite="lax",
+        secure=False
+    )
+    return {"user": user.to_dict()}
+
+@auth_router.get("/logout/browser")
 def logout_browser_session(request: Request, db: Session = Depends(get_db)):
     sid = get_session_id(request)
     if sid:
         delete_session(db, sid)
         
-    response = RedirectResponse(url="/", status_code=302)
+    response = RedirectResponse(url="/login?loggedOut=true", status_code=302)
     response.delete_cookie(SESSION_COOKIE, path="/")
     return response
 
@@ -149,6 +189,17 @@ def create_task(
     db: Session = Depends(get_db),
     user: dict = Depends(require_auth)
 ):
+    # Get or initialize ticket number setting
+    setting = db.query(SystemSetting).filter(SystemSetting.key == "next_ticket_number").first()
+    if not setting:
+        # Initialize from existing tasks or start at 1
+        max_ticket = db.query(func.max(Task.ticketNumber)).scalar() or 0
+        setting = SystemSetting(key="next_ticket_number", value=str(max_ticket + 1))
+        db.add(setting)
+        db.flush()
+    
+    current_ticket = int(setting.value)
+    
     task = Task(
         title=task_in.title,
         description=task_in.description,
@@ -156,8 +207,13 @@ def create_task(
         assignee=task_in.assignee,
         columnStatus=task_in.columnStatus,
         dueDate=task_in.dueDate,
-        userId=user["id"]
+        userId=user["id"],
+        ticketNumber=current_ticket
     )
+    
+    # Increment counter for next time
+    setting.value = str(current_ticket + 1)
+    
     db.add(task)
     db.commit()
     db.refresh(task)
@@ -187,6 +243,14 @@ def get_task_stats(
         elif status_val == "done":
             stats["done"] += 1
     return stats
+
+@api_router.get("/tasks/history", response_model=List[schemas.TaskResponse])
+def get_task_history(
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_auth)
+):
+    tasks = db.query(Task).filter(Task.userId == user["id"]).order_by(Task.ticketNumber.desc()).all()
+    return tasks
 
 @api_router.get("/tasks/{task_id}", response_model=schemas.TaskResponse)
 def get_task(
@@ -219,7 +283,7 @@ def update_task(
     db.refresh(task)
     return task
 
-@api_router.delete("/tasks/{task_id}", status_code=204)
+@api_router.delete("/tasks/{task_id}", response_model=schemas.TaskResponse)
 def delete_task(
     task_id: str,
     db: Session = Depends(get_db),
@@ -229,9 +293,11 @@ def delete_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
         
-    db.delete(task)
+    task.columnStatus = "drop"
+    task.updatedAt = datetime.utcnow()
     db.commit()
-    return Response(status_code=204)
+    db.refresh(task)
+    return task
 
 @api_router.patch("/tasks/{task_id}/move", response_model=schemas.TaskResponse)
 def move_task(

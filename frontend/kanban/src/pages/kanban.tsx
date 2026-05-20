@@ -5,11 +5,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useListTasks, useGetTaskStats } from "@workspace/api-client-react";
 import KanbanBoard from "@/components/kanban-board";
 import TaskModal from "@/components/task-modal";
+import HistoryModal from "@/components/history-modal";
 
 export default function KanbanPage() {
   const { logout, user } = useAuth();
   const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
   const { data: tasks = [], isLoading } = useListTasks(
     assigneeFilter !== "all" ? { assignee: assigneeFilter } : {}
@@ -53,6 +55,10 @@ export default function KanbanPage() {
             + NEW_TASK
           </Button>
 
+          <Button size="sm" variant="outline" onClick={() => setIsHistoryModalOpen(true)} className="h-8 font-mono text-xs border-primary/50 text-primary hover:bg-primary/10">
+            TICKET_HISTORY
+          </Button>
+
           <div className="h-4 w-[1px] bg-border mx-1"></div>
 
           <span className="text-xs font-mono text-muted-foreground hidden sm:inline-block">
@@ -70,13 +76,17 @@ export default function KanbanPage() {
             LOADING_TASKS...
           </div>
         ) : (
-          <KanbanBoard tasks={tasks} />
+          <KanbanBoard tasks={tasks} assigneeFilter={assigneeFilter} />
         )}
       </main>
 
       <TaskModal 
         open={isTaskModalOpen} 
         onOpenChange={setIsTaskModalOpen} 
+      />
+      <HistoryModal
+        open={isHistoryModalOpen}
+        onOpenChange={setIsHistoryModalOpen}
       />
     </div>
   );

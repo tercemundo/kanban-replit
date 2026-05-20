@@ -4,6 +4,10 @@ from datetime import datetime
 from models import PriorityEnum, AssigneeEnum, ColumnStatusEnum
 
 # --- User Schemas ---
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
 class UserResponse(BaseModel):
     id: str
     email: str
@@ -41,6 +45,7 @@ class TaskMove(BaseModel):
 
 class TaskResponse(TaskBase):
     id: str
+    ticketNumber: Optional[int] = None
     createdAt: datetime
     updatedAt: datetime
     userId: str

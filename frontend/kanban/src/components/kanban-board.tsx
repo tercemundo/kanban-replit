@@ -8,10 +8,17 @@ const COLUMNS: { id: TaskColumnStatus; title: string }[] = [
   { id: "todo", title: "TODO" },
   { id: "in_progress", title: "EN PROGRESO" },
   { id: "in_review", title: "EN REVISIÓN" },
-  { id: "done", title: "HECHO" }
+  { id: "done", title: "HECHO" },
+  { id: "drop", title: "DROP" }
 ];
 
-export default function KanbanBoard({ tasks }: { tasks: Task[] }) {
+export default function KanbanBoard({ 
+  tasks, 
+  assigneeFilter 
+}: { 
+  tasks: Task[]; 
+  assigneeFilter: string;
+}) {
   const queryClient = useQueryClient();
   const moveTask = useMoveTask();
 
@@ -20,17 +27,39 @@ export default function KanbanBoard({ tasks }: { tasks: Task[] }) {
 
     const sourceColumn = result.source.droppableId as TaskColumnStatus;
     const destinationColumn = result.destination.droppableId as TaskColumnStatus;
-    const taskId = result.draggableId; // UUID string — no parseInt
+    const taskId = result.draggableId;
 
     if (sourceColumn === destinationColumn) return;
 
-    // Optimistically update the UI if needed, or just let React Query handle it after mutation
-    // For a simple case, we just trigger the mutation. The API is fast on localhost.
+    // Construct the exact query key being used for the current view
+    const params = assigneeFilter !== "all" ? { assignee: assigneeFilter } : {};
+    const queryKey = getListTasksQueryKey(params);
     
+    // We cancel outgoing fetches to avoid overwriting our optimistic update
+    queryClient.cancelQueries({ queryKey });
+
+    // Snapshot of previous value
+    const previousTasks = queryClient.getQueryData<Task[]>(queryKey);
+
+    // Optimistically update to the new value
+    queryClient.setQueriesData<Task[]>({ queryKey }, (old) => {
+      if (!old) return [];
+      return old.map(t => 
+        t.id === taskId ? { ...t, columnStatus: destinationColumn } : t
+      );
+    });
+
     moveTask.mutate(
       { id: taskId, data: { columnStatus: destinationColumn } },
       {
-        onSuccess: () => {
+        onError: () => {
+          // Rollback if error
+          if (previousTasks) {
+            queryClient.setQueriesData({ queryKey }, previousTasks);
+          }
+        },
+        onSettled: () => {
+          // Invalidate the specific query key and the general one to be safe
           queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetTaskStatsQueryKey() });
         }

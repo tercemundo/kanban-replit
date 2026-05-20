@@ -19,6 +19,12 @@ class ColumnStatusEnum(str, enum.Enum):
     in_progress = "in_progress"
     in_review = "in_review"
     done = "done"
+    drop = "drop"
+
+class SystemSetting(Base):
+    __tablename__ = "system_settings"
+    key = Column(String, primary_key=True)
+    value = Column(String, nullable=False)
 
 class User(Base):
     __tablename__ = "users"
@@ -26,6 +32,8 @@ class User(Base):
     # sub/externalId: identificador único del proveedor externo (OIDC/mock)
     externalId = Column("external_id", String, unique=True, nullable=True)
     email = Column(String, unique=True, nullable=True)
+    username = Column(String, unique=True, nullable=True)
+    hashedPassword = Column("hashed_password", String, nullable=True)
     firstName = Column("first_name", String, nullable=True)
     lastName = Column("last_name", String, nullable=True)
     profileImageUrl = Column("profile_image_url", String, nullable=True)
@@ -61,6 +69,7 @@ class Task(Base):
     priority = Column(Enum(PriorityEnum, name="priority", native_enum=True), default=PriorityEnum.medium, nullable=False)
     assignee = Column(Enum(AssigneeEnum, name="assignee", native_enum=True), nullable=False)
     columnStatus = Column("column_status", Enum(ColumnStatusEnum, name="column_status", native_enum=True), default=ColumnStatusEnum.todo, nullable=False)
+    ticketNumber = Column("ticket_number", Integer, unique=True, nullable=True)
     dueDate = Column("due_date", DateTime(timezone=True), nullable=True)
     userId = Column("user_id", String, nullable=False)
     createdAt = Column("created_at", DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -74,6 +83,7 @@ class Task(Base):
             "priority": self.priority.value if hasattr(self.priority, "value") else self.priority,
             "assignee": self.assignee.value if hasattr(self.assignee, "value") else self.assignee,
             "columnStatus": self.columnStatus.value if hasattr(self.columnStatus, "value") else self.columnStatus,
+            "ticketNumber": self.ticketNumber,
             "dueDate": self.dueDate.isoformat() if self.dueDate else None,
             "userId": self.userId,
             "createdAt": self.createdAt.isoformat() if self.createdAt else None,

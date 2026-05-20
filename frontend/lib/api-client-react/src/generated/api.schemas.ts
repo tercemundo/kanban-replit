@@ -78,10 +78,12 @@ export const TaskColumnStatus = {
   in_progress: 'in_progress',
   in_review: 'in_review',
   done: 'done',
+  drop: 'drop',
 } as const;
 
 export interface Task {
   id: string;
+  ticketNumber?: number | null;
   title: string;
   /** @nullable */
   description?: string | null;
@@ -122,6 +124,7 @@ export const TaskInputColumnStatus = {
   in_progress: 'in_progress',
   in_review: 'in_review',
   done: 'done',
+  drop: 'drop',
 } as const;
 
 export interface TaskInput {
@@ -161,7 +164,13 @@ export const TaskUpdateColumnStatus = {
   in_progress: 'in_progress',
   in_review: 'in_review',
   done: 'done',
+  drop: 'drop',
 } as const;
+
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
 
 export interface TaskUpdate {
   /** @minLength 1 */

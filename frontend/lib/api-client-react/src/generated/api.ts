@@ -20,7 +20,6 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  AuthUserEnvelope,
   BeginBrowserLoginParams,
   ErrorEnvelope,
   HandleBrowserLoginCallbackParams,
@@ -33,7 +32,9 @@ import type {
   TaskInput,
   TaskMoveInput,
   TaskStats,
-  TaskUpdate
+  TaskUpdate,
+  LoginRequest,
+  AuthUserEnvelope
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -926,7 +927,7 @@ export const updateTask = async (id: string,
 
 
 export const getUpdateTaskMutationOptions = <TError = ErrorType<ErrorEnvelope>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTask>>, TError,{id: number;data: BodyType<TaskUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTask>>, TError,{id: string;data: BodyType<TaskUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof updateTask>>, TError,{id: string;data: BodyType<TaskUpdate>}, TContext> => {
 
 const mutationKey = ['updateTask'];
@@ -960,11 +961,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
  * @summary Update a task
  */
 export const useUpdateTask = <TError = ErrorType<ErrorEnvelope>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTask>>, TError,{id: number;data: BodyType<TaskUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTask>>, TError,{id: string;data: BodyType<TaskUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof updateTask>>,
         TError,
-        {id: number;data: BodyType<TaskUpdate>},
+        {id: string;data: BodyType<TaskUpdate>},
         TContext
       > => {
       return useMutation(getUpdateTaskMutationOptions(options));
@@ -996,7 +997,7 @@ export const deleteTask = async (id: string, options?: RequestInit): Promise<voi
 
 
 export const getDeleteTaskMutationOptions = <TError = ErrorType<ErrorEnvelope>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteTask>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteTask>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteTask>>, TError,{id: string}, TContext> => {
 
 const mutationKey = ['deleteTask'];
@@ -1030,11 +1031,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
  * @summary Delete a task
  */
 export const useDeleteTask = <TError = ErrorType<ErrorEnvelope>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteTask>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteTask>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof deleteTask>>,
         TError,
-        {id: number},
+        {id: string},
         TContext
       > => {
       return useMutation(getDeleteTaskMutationOptions(options));
@@ -1068,7 +1069,7 @@ export const moveTask = async (id: string,
 
 
 export const getMoveTaskMutationOptions = <TError = ErrorType<ErrorEnvelope>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof moveTask>>, TError,{id: number;data: BodyType<TaskMoveInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof moveTask>>, TError,{id: string;data: BodyType<TaskMoveInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof moveTask>>, TError,{id: string;data: BodyType<TaskMoveInput>}, TContext> => {
 
 const mutationKey = ['moveTask'];
@@ -1106,9 +1107,62 @@ export const useMoveTask = <TError = ErrorType<ErrorEnvelope>,
  ): UseMutationResult<
         Awaited<ReturnType<typeof moveTask>>,
         TError,
-        {id: number;data: BodyType<TaskMoveInput>},
+        {id: string;data: BodyType<TaskMoveInput>},
         TContext
       > => {
       return useMutation(getMoveTaskMutationOptions(options));
     }
 
+
+export const getGetTaskHistoryUrl = () => {
+  return `/api/tasks/history`
+}
+
+export const getTaskHistory = async (options?: RequestInit): Promise<Task[]> => {
+  return customFetch<Task[]>(getGetTaskHistoryUrl(),
+  {
+    ...options,
+    method: 'GET'
+  }
+);}
+
+export const getGetTaskHistoryQueryKey = () => {
+  return ['getTaskHistory'] as const;
+}
+
+export const getGetTaskHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getTaskHistory>>, TError = ErrorType<ErrorEnvelope>>(options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTaskHistory>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTaskHistoryQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTaskHistory>>> = ({ signal }) => getTaskHistory({ signal, ...requestOptions });
+
+      return { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTaskHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetTaskHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getTaskHistory>>>
+export type GetTaskHistoryQueryError = ErrorType<ErrorEnvelope>
+
+export const useGetTaskHistory = <TData = Awaited<ReturnType<typeof getTaskHistory>>, TError = ErrorType<ErrorEnvelope>>(options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTaskHistory>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetTaskHistoryQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+export const postLogin = async (loginRequest: LoginRequest, options?: RequestInit): Promise<AuthUserEnvelope> => {
+  return customFetch<AuthUserEnvelope>(`/api/auth/login`,
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(loginRequest)
+  }
+);}

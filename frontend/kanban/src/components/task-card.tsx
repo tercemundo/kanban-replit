@@ -20,7 +20,7 @@ export default function TaskCard({ task }: { task: Task }) {
   return (
     <>
       <div className="group relative bg-background/80 backdrop-blur-sm border border-border/60 p-3 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-background/90 backdrop-blur pb-1 pl-1 rounded-bl">
+        <div className="absolute top-2 right-2 opacity-60 group-hover:opacity-100 transition-opacity flex gap-1 bg-background/90 backdrop-blur pb-1 pl-1 rounded-bl z-20">
           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsEditModalOpen(true)}>
             <Edit2 className="h-3 w-3" />
           </Button>
@@ -34,7 +34,10 @@ export default function TaskCard({ task }: { task: Task }) {
             className="w-2 h-2 rounded-full mt-1.5 shrink-0" 
             style={{ backgroundColor: PRIORITY_COLORS[task.priority] }}
           />
-          <h3 className="font-semibold text-sm leading-snug line-clamp-2">{task.title}</h3>
+          <h3 className="font-semibold text-sm leading-snug line-clamp-2">
+            {task.ticketNumber && <span className="text-primary mr-1">TKT:{task.ticketNumber}</span>}
+            {task.title}
+          </h3>
         </div>
 
         {task.description && (

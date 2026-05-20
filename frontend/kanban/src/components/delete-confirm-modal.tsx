@@ -19,7 +19,7 @@ export default function DeleteConfirmModal({
 }: { 
   open: boolean; 
   onOpenChange: (open: boolean) => void; 
-  taskId: number;
+  taskId: string;
 }) {
   const queryClient = useQueryClient();
   const deleteTask = useDeleteTask();
@@ -39,21 +39,21 @@ export default function DeleteConfirmModal({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="border-destructive/20">
+      <AlertDialogContent className="border-warning/20">
         <AlertDialogHeader>
-          <AlertDialogTitle className="font-mono text-destructive">DELETE_TASK?</AlertDialogTitle>
+          <AlertDialogTitle className="font-mono text-warning">MOVE_TO_DROP?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete the task from the system database.
+            This will move the task to the DROP column instead of deleting it. You can still recover it later if needed.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={deleteTask.isPending}>CANCEL</AlertDialogCancel>
           <AlertDialogAction 
             onClick={(e) => { e.preventDefault(); handleConfirm(); }}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className="bg-warning text-warning-foreground hover:bg-warning/90"
             disabled={deleteTask.isPending}
           >
-            {deleteTask.isPending ? "DELETING..." : "CONFIRM_DELETE"}
+            {deleteTask.isPending ? "MOVING..." : "CONFIRM_DROP"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
